@@ -34,27 +34,40 @@ socket.onmessage = (event) => {
 };
 
 // --- INPUT HANDLING ---
-// We send inputs immediately, but the Server delays processing them by 200ms
-const keys = {};
+// Now we send start/stop intents (keydown -> start, keyup -> stop)
+const keys = {}; // local pressed map to avoid duplicate starts
+
 window.addEventListener('keydown', e => {
-    if (!keys[e.key]) {
-        keys[e.key] = true;
-        sendInput(e.key);
+    // map keys
+    const k = e.key;
+    if (keys[k]) return; // already pressed locally
+    keys[k] = true;
+
+    // send a start action for this direction
+    const cmd = mapKeyToCmd(k);
+    if (cmd && myId) {
+        socket.send(JSON.stringify({ type: 'input', key: cmd, action: 'start' }));
     }
 });
-window.addEventListener('keyup', e => keys[e.key] = false);
 
-function sendInput(key) {
-    if (!myId) return;
-    let cmd = null;
-    if (key === 'w' || key === 'ArrowUp') cmd = 'up';
-    if (key === 's' || key === 'ArrowDown') cmd = 'down';
-    if (key === 'a' || key === 'ArrowLeft') cmd = 'left';
-    if (key === 'd' || key === 'ArrowRight') cmd = 'right';
+window.addEventListener('keyup', e => {
+    const k = e.key;
+    if (!keys[k]) return; // wasn't pressed
+    keys[k] = false;
 
-    if (cmd) {
-        socket.send(JSON.stringify({ type: 'input', key: cmd }));
+    // send a stop action for this direction
+    const cmd = mapKeyToCmd(k);
+    if (cmd && myId) {
+        socket.send(JSON.stringify({ type: 'input', key: cmd, action: 'stop' }));
     }
+});
+
+function mapKeyToCmd(key) {
+    if (key === 'w' || key === 'ArrowUp') return 'up';
+    if (key === 's' || key === 'ArrowDown') return 'down';
+    if (key === 'a' || key === 'ArrowLeft') return 'left';
+    if (key === 'd' || key === 'ArrowRight') return 'right';
+    return null;
 }
 
 // --- INTERPOLATION MATH ---

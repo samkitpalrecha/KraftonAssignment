@@ -48,7 +48,8 @@ wss.on('connection', (ws) => {
         y: MAP_SIZE.height / 2, 
         score: 0, 
         color: color,
-        inputs: [] // Queue for inputs
+        // maintaining pressed-state map for continuous movement
+        pressed: { up: false, down: false, left: false, right: false }
     };
 
     // Send initial metadata to client (ID assignment)
@@ -66,9 +67,23 @@ wss.on('connection', (ws) => {
             try {
                 const data = JSON.parse(message);
                 if (data.type === 'input' && PLAYERS[playerId]) {
-                    // Validate input format (basic security)
-                    if (['up', 'down', 'left', 'right'].includes(data.key)) {
-                        PLAYERS[playerId].inputs.push(data.key);
+                    // Input format: { type: 'input', key: 'up'|'down'|'left'|'right', action: 'start'|'stop' }
+                    if (['up','down','left','right'].includes(data.key) &&
+                        (data.action === 'start' || data.action === 'stop')) {
+                        PLAYERS[playerId].pressed[data.key] = (data.action === 'start');
+                    } else {
+                        // Backward compatibility (single-shot inputs) - treat as single tick start then stop
+                        if (['up','down','left','right'].includes(data.key)) {
+                            // apply one-step movement immediately now (still server authoritative)
+                            const key = data.key;
+                            if (key === 'up') PLAYERS[playerId].y -= MOVEMENT_SPEED;
+                            if (key === 'down') PLAYERS[playerId].y += MOVEMENT_SPEED;
+                            if (key === 'left') PLAYERS[playerId].x -= MOVEMENT_SPEED;
+                            if (key === 'right') PLAYERS[playerId].x += MOVEMENT_SPEED;
+                            // clamp
+                            PLAYERS[playerId].x = Math.max(0, Math.min(MAP_SIZE.width, PLAYERS[playerId].x));
+                            PLAYERS[playerId].y = Math.max(0, Math.min(MAP_SIZE.height, PLAYERS[playerId].y));
+                        }
                     }
                 }
             } catch (e) { console.error("Invalid msg", e); }
@@ -82,23 +97,19 @@ wss.on('connection', (ws) => {
 
 // --- GAME LOOP (AUTHORITATIVE) ---
 setInterval(() => {
-    // 1. Process Inputs & Move Players
+    // 1. Process pressed states & Move Players continuously
     for (const id in PLAYERS) {
         const p = PLAYERS[id];
         
-        // Process all queued inputs for this tick
-        while (p.inputs.length > 0) {
-            const input = p.inputs.shift();
-            // Server Authority on Position
-            if (input === 'up') p.y -= MOVEMENT_SPEED;
-            if (input === 'down') p.y += MOVEMENT_SPEED;
-            if (input === 'left') p.x -= MOVEMENT_SPEED;
-            if (input === 'right') p.x += MOVEMENT_SPEED;
+        // Apply movement based on pressed booleans (one tick per interval)
+        if (p.pressed.up) p.y -= MOVEMENT_SPEED;
+        if (p.pressed.down) p.y += MOVEMENT_SPEED;
+        if (p.pressed.left) p.x -= MOVEMENT_SPEED;
+        if (p.pressed.right) p.x += MOVEMENT_SPEED;
 
-            // Boundary checks
-            p.x = Math.max(0, Math.min(MAP_SIZE.width, p.x));
-            p.y = Math.max(0, Math.min(MAP_SIZE.height, p.y));
-        }
+        // Boundary checks
+        p.x = Math.max(0, Math.min(MAP_SIZE.width, p.x));
+        p.y = Math.max(0, Math.min(MAP_SIZE.height, p.y));
 
         // 2. Server Authority on Collisions (Coins)
         // Clients cannot report score. Server calculates it.
@@ -117,8 +128,21 @@ setInterval(() => {
     }
 
     // 3. Prepare State Packet
+    // (IMPORTANT: strip any server-only fields (pressed) before sending)
+    const playersForSend = {};
+    for (const id in PLAYERS) {
+        const p = PLAYERS[id];
+        playersForSend[id] = {
+            id: p.id,
+            x: p.x,
+            y: p.y,
+            score: p.score,
+            color: p.color
+        };
+    }
+
     const gameState = {
-        players: PLAYERS,
+        players: playersForSend,
         coins: COINS,
         timestamp: Date.now() // Critical for interpolation
     };
