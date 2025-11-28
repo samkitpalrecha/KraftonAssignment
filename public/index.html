@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Multiplayer Sync Test</title>
+    <style>
+        body { background: #222; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        canvas { background: #333; border: 2px solid #555; margin-top: 20px; }
+        #status { margin-top: 10px; color: #aaa; }
+    </style>
+</head>
+<body>
+    <h1>Coin Collector (Lag Simulation)</h1>
+    <div id="status">Connecting...</div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <p>Use WASD or Arrows to move. Latency: 200ms.</p>
+    <script src="client.js"></script>
+</body>
+</html>
