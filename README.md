@@ -1,23 +1,23 @@
 # Multiplayer State Synchronization - Coin Collector
 
-This project is a raw implementation of a real-time multiplayer game using **Node.js** and **WebSockets**. [cite_start]It demonstrates **Server Authority**, **Latency Simulation (200ms)**, and **Entity Interpolation** without the use of game engines or high-level networking frameworks (like Photon or Mirror)[cite: 3, 4, 8].
+This project is a raw implementation of a real-time multiplayer game using **Node.js** and **WebSockets**. [cite_start]It demonstrates **Server Authority**, **Latency Simulation (200ms)**, and **Entity Interpolation** without the use of game engines or high-level networking frameworks (like Photon or Mirror).
 
 ## Project Overview
 
 The game consists of a central authoritative server and multiple connecting clients. Players control a shape to collect coins. The server manages all game logic (physics, collisions, scoring), while the clients purely render the state.
 
 ### Key Features
-* **Authoritative Server:** The server is the single source of truth. [cite_start]It resolves collisions and validates score events[cite: 22, 25].
-* [cite_start]**Latency Simulation:** A forced **200ms delay** is injected into all network traffic (both Input and State packets) to simulate degraded network conditions[cite: 27, 28].
-* [cite_start]**Entity Interpolation:** Clients implement snapshot interpolation (rendering ~100ms in the past) to ensure smooth player movement despite the network lag and jitter[cite: 31, 33].
-* **Cheat Prevention:** Clients send only "Intent" (inputs), not coordinates. [cite_start]Clients cannot spoof positions or self-report scores[cite: 35].
+* **Authoritative Server:** The server is the single source of truth. [cite_start]It resolves collisions and validates score events.
+* [cite_start]**Latency Simulation:** A forced **200ms delay** is injected into all network traffic (both Input and State packets) to simulate degraded network conditions.
+* [cite_start]**Entity Interpolation:** Clients implement snapshot interpolation (rendering ~100ms in the past) to ensure smooth player movement despite the network lag and jitter.
+* **Cheat Prevention:** Clients send only "Intent" (inputs), not coordinates. [cite_start]Clients cannot spoof positions or self-report scores.
 
 ---
 
 ## Technology Stack
 
 * **Runtime:** Node.js
-* [cite_start]**Networking:** `ws` (Raw WebSockets) [cite: 7]
+* [cite_start]**Networking:** `ws` (Raw WebSockets)
 * **Client:** HTML5 Canvas + Vanilla JavaScript (No engines)
 * **Architecture:** Client-Server (Authoritative)
 
@@ -44,7 +44,7 @@ The game consists of a central authoritative server and multiple connecting clie
 
 4.  **Play**
     * Open your browser to `http://localhost:3000`.
-    * [cite_start]Open a **second tab/window** to the same URL to test multiplayer sync[cite: 14].
+    * [cite_start]Open a **second tab/window** to the same URL to test multiplayer sync.
     * **Note:** Arrange windows side-by-side to observe the interpolation smoothness vs. the input latency.
 
 ---
@@ -65,7 +65,7 @@ The server runs a game loop at **20Hz (50ms ticks)**.
 * **State Broadcast:** The server sends a snapshot of the entire world (`{ players, coins, timestamp }`) to all clients after every tick.
 
 ### 2. Network Simulation (The 200ms Constraint)
-[cite_start]To meet the resilience requirement[cite: 28], `setTimeout` wrappers are used on both ends:
+[cite_start]To meet the resilience requirement, `setTimeout` wrappers are used on both ends:
 * **Client:** `sendInput` waits 200ms before actually emitting the WebSocket message.
 * **Server:** `broadcast` waits 200ms before sending the state snapshot to clients.
 * **Result:** A minimum 400ms Round-Trip-Time (RTT) delay between pressing a key and receiving the confirmed position.
