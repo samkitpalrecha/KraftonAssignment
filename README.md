@@ -28,7 +28,7 @@ The game consists of a central authoritative server and multiple connecting clie
 1.  **Clone the Repository**
     ```bash
     git clone <repository_url>
-    cd multiplayer-test
+    cd KraftonAssignment
     ```
 
 2.  **Install Dependencies**
